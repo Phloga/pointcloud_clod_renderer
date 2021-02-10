@@ -67,8 +67,9 @@ protected:
 	void on_randomize_position_cb();
 	void on_reg_find_point_cloud_cb();
 	void on_point_cloud_style_cb();
+	void on_lod_mode_change();
 	void prepare_point_cloud(point_cloud& pc);
-
+	
 private:
 	std::string ply_path;
 	point_cloud source_pc, crs_srs_pc;
@@ -81,7 +82,7 @@ private:
 	float trans_intensity;
 	bool view_find_point_cloud;
 	bool renderer_out_of_date = true;
-
+	int lod_mode = (int)cgv::render::clod_point_renderer::LoDMode::RANDOM_POISSON;
 	cgv::render::clod_point_renderer cp_renderer;
 	cgv::render::clod_point_render_style cp_style;
 };

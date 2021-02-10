@@ -101,7 +101,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
-			cp_renderer.generate_lods();
+			cp_renderer.generate_lods((cgv::render::clod_point_renderer::LoDMode)lod_mode);
 			//cp_renderer.set_lods(LODS);
 			renderer_out_of_date = false;
 		}
@@ -159,6 +159,8 @@ void pointcloud_lod_render_test::create_gui()
 	add_member_control(this, "rotation intensity", rot_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	add_member_control(this,"translation intensity", trans_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	connect_copy(add_button("find point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_reg_find_point_cloud_cb));
+	std::string mode_defs = "enums='random=2;potree=1'";
+	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
 
 
 	add_decorator("point cloud", "heading", "level=2");
@@ -214,6 +216,11 @@ void pointcloud_lod_render_test::on_reg_find_point_cloud_cb()
 void pointcloud_lod_render_test::on_point_cloud_style_cb()
 {
 	post_redraw();
+}
+
+void pointcloud_lod_render_test::on_lod_mode_change()
+{
+
 }
 
 #include "lib_begin.h"
