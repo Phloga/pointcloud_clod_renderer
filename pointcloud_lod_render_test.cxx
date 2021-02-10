@@ -5,7 +5,6 @@
 #include <random>
 #include <chrono>
 #include <numeric>
-#include <random>
 
 using namespace std;
 using namespace cgv::base;
@@ -38,7 +37,7 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
 {
-	return rh.reflect_member("ply_path", ply_path);
+	return	rh.reflect_member("ply_path", ply_path);
 }
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
@@ -157,22 +156,6 @@ void pointcloud_lod_render_test::create_gui()
 
 	add_decorator("point cloud", "heading", "level=2");
 	connect_copy(add_control("Point size", source_srs.point_size, "value_slider", "min=0.01;max=3.0;log=false;ticks=true")->value_change, rebind(this, &pointcloud_lod_render_test::on_point_cloud_style_cb));
-
-
-	///rounded_cone_render
-	if (begin_tree_node("cone render style", rcrs)) {
-		align("\a");
-		add_gui("render_style", rcrs);
-		align("\b");
-		end_tree_node(rcrs);
-	}
-	
-	if (begin_tree_node("Surfel Rendering", source_srs, false)) {
-		align("\a");
-		add_gui("surfel_style", source_srs);
-		align("\b");
-		end_tree_node(source_srs);
-	}
 	
 	if (begin_tree_node("clod_render_style", cp_style, false)) {
 		align("\a");
@@ -184,6 +167,7 @@ void pointcloud_lod_render_test::create_gui()
 
 void pointcloud_lod_render_test::timer_event(double t, double dt)
 {
+	post_redraw();
 }
 
 void pointcloud_lod_render_test::on_load_point_cloud_cb()
