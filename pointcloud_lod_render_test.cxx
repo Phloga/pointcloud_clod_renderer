@@ -81,13 +81,19 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 
 	if (source_pc.get_nr_points() > 0) {
 		if (renderer_out_of_date) {
-			vec4 color(1.0, 0.0, 0.0, 1.0);
+			rgb color(1.0, 0.0, 0.0);
 			vector<point_cloud::Pnt> P(source_pc.get_nr_points());
 			vector<point_cloud::Clr> C(source_pc.get_nr_points());
 			vector<short> LODS(source_pc.get_nr_points());
 			for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 				P[i] = source_pc.pnt(i);
-				C[i] = source_pc.clr(i);
+				if (source_pc.has_colors()) {
+					C[i] = source_pc.clr(i);
+				}
+				else {
+					C[i] = rgb8(color);
+				}
+
 
 				LODS[i] = rand() % 8; //random lods for testing
 			}
@@ -153,6 +159,7 @@ void pointcloud_lod_render_test::create_gui()
 	add_member_control(this, "rotation intensity", rot_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	add_member_control(this,"translation intensity", trans_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	connect_copy(add_button("find point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_reg_find_point_cloud_cb));
+
 
 	add_decorator("point cloud", "heading", "level=2");
 
