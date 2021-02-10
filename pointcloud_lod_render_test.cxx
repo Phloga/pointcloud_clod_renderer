@@ -155,8 +155,7 @@ void pointcloud_lod_render_test::create_gui()
 	connect_copy(add_button("find point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_reg_find_point_cloud_cb));
 
 	add_decorator("point cloud", "heading", "level=2");
-	connect_copy(add_control("Point size", source_srs.point_size, "value_slider", "min=0.01;max=3.0;log=false;ticks=true")->value_change, rebind(this, &pointcloud_lod_render_test::on_point_cloud_style_cb));
-	
+
 	if (begin_tree_node("clod_render_style", cp_style, false)) {
 		align("\a");
 		add_gui("clod style", cp_style);
