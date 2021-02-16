@@ -22,6 +22,12 @@
 #include <mutex>
 #include <future>
 
+// these are the vr specific headers
+#include <vr/vr_driver.h>
+#include <cg_vr/vr_server.h>
+#include <vr_view_interactor.h>
+#include <vr_render_helpers.h>
+
 #include "lib_begin.h"
 
 class pointcloud_lod_render_test :
@@ -68,7 +74,6 @@ protected:
 	void on_reg_find_point_cloud_cb();
 	void on_point_cloud_style_cb();
 	void on_lod_mode_change();
-	void prepare_point_cloud(point_cloud& pc);
 	
 private:
 	std::string ply_path;

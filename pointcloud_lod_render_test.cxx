@@ -54,13 +54,37 @@ void pointcloud_lod_render_test::unregister()
 
 bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 {
+	cgv::gui::connect_vr_server(true);
+
 	ctx.set_bg_clr_idx(3);
 	ctx.set_bg_color(0, 0, 0, 0.9);
 	cgv::render::view* view_ptr = find_view_as_node();
+
 	if (view_ptr) {
 		view_ptr->set_view_up_dir(vec3(0, -1, 0));
 		view_ptr->set_focus(vec3(0, 0, 0));
+		view_ptr->set_eye_keep_view_angle(dvec3(0, 4, -4));
+		// if the view points to a vr_view_interactor
+		vr_view_interactor* vr_view_ptr = dynamic_cast<vr_view_interactor*>(view_ptr);
+		if (vr_view_ptr) {
+			// configure vr event processing
+			vr_view_ptr->set_event_type_flags(
+				cgv::gui::VREventTypeFlags(
+					cgv::gui::VRE_KEY +
+					cgv::gui::VRE_ONE_AXIS +
+					cgv::gui::VRE_TWO_AXES +
+					cgv::gui::VRE_TWO_AXES_GENERATES_DPAD +
+					cgv::gui::VRE_POSE
+				));
+			vr_view_ptr->enable_vr_event_debugging(false);
+			// configure vr rendering
+			vr_view_ptr->draw_action_zone(false);
+			vr_view_ptr->draw_vr_kits(true);
+			vr_view_ptr->enable_blit_vr_views(true);
+			vr_view_ptr->set_blit_vr_view_width(200);
+		}
 	}
+
 	//cgv::render::ref_point_renderer(ctx, 1);
 	cgv::render::ref_surfel_renderer(ctx, 1);
 	cgv::render::ref_rounded_cone_renderer(ctx, 1);
@@ -69,48 +93,52 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 	return true;
 }
 
-void pointcloud_lod_render_test::prepare_point_cloud(point_cloud& pc)
-{
-
-}
 
 void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 {
-	ctx.push_modelview_matrix();
+	//ctx.push_modelview_matrix();
 	cp_renderer.set_render_style(cp_style);
 
 	if (source_pc.get_nr_points() > 0) {
 		if (renderer_out_of_date) {
 			rgb color(1.0, 0.0, 0.0);
+			//find weighted center
+			vec3 centroid(0.f), pmin(std::numeric_limits<float>::infinity()), pmax(-std::numeric_limits<float>::infinity());
+			float scale = 1.f;
+			for (int i = 0; i < source_pc.get_nr_points(); ++i) {
+				centroid += source_pc.pnt(i);
+				pmin.x() = std::min(source_pc.pnt(i).x(), pmin.x()); pmin.y() = std::min(source_pc.pnt(i).y(), pmin.y());
+				pmin.z() = std::min(source_pc.pnt(i).z(),pmin.z());
+				pmax.x() = std::max(source_pc.pnt(i).x(), pmax.x()); pmax.y() = std::max(source_pc.pnt(i).y(), pmax.y());
+				pmax.z() = std::max(source_pc.pnt(i).z(), pmax.z());
+			}
+			centroid /= source_pc.get_nr_points();
+			vec3 ext = (pmax - pmin);
+			scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(),ext.end())));
+
 			vector<point_cloud::Pnt> P(source_pc.get_nr_points());
 			vector<point_cloud::Clr> C(source_pc.get_nr_points());
-			vector<short> LODS(source_pc.get_nr_points());
+
 			for (int i = 0; i < source_pc.get_nr_points(); ++i) {
-				P[i] = source_pc.pnt(i);
+				P[i] = (source_pc.pnt(i) - centroid)*scale;
 				if (source_pc.has_colors()) {
 					C[i] = source_pc.clr(i);
 				}
 				else {
 					C[i] = rgb8(color);
 				}
-
-
-				LODS[i] = rand() % 8; //random lods for testing
 			}
 			//vector<cgv::render::render_types::rgba> colors(source_pc.get_nr_points(), rgba(color.x(), color.y(), color.z(), 0.f));
 
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
 			cp_renderer.generate_lods((cgv::render::clod_point_renderer::LoDMode)lod_mode);
-			//cp_renderer.set_lods(LODS);
 			renderer_out_of_date = false;
 		}
 		if (cp_renderer.enable(ctx))
 			cp_renderer.draw(ctx, 0, source_pc.get_nr_points());
 	}
-	ctx.pop_modelview_matrix();
-
-	//draw_point_cloud(ctx, source_pc,vec4(1.0,0.0,0.0,1.0));
+	//ctx.pop_modelview_matrix();
 
 	if (view_find_point_cloud) {
 		find_pointcloud(ctx);
@@ -175,7 +203,7 @@ void pointcloud_lod_render_test::create_gui()
 
 void pointcloud_lod_render_test::timer_event(double t, double dt)
 {
-	post_redraw();
+	//post_redraw();
 }
 
 void pointcloud_lod_render_test::on_load_point_cloud_cb()

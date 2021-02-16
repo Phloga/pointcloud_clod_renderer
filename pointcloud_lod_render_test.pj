@@ -11,6 +11,5 @@ addProjectDeps=["cgv_utils","cgv_type","cgv_data","cgv_base", "cgv_signal", "cgv
 addDependencies=["opengl", "glu"];
 addSharedDefines=["POINTCLOUD_LOD_RENDER_TEST_EXPORTS"];
 addCommandLineArguments=[
-		after("type(rgbd_icp_tool):ply_path='".INPUT_DIR."'", "rgbd_icp_tool"),
-		'config:"'.INPUT_DIR.'/config.def"',
-		after("type(shader_config):shader_path='".CGV_DIR."/libs/cgv_gl/glsl;".INPUT_DIR."'", "cg_fltk")];
+	after("type(shader_config):shader_path='".INPUT_DIR.";".CGV_DIR."/libs/cgv_gl/glsl'","cg_fltk"),	'config:"'.INPUT_DIR.'/config.def"'
+];
