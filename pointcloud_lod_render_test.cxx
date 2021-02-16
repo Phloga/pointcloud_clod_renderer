@@ -61,7 +61,7 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 	cgv::render::view* view_ptr = find_view_as_node();
 
 	if (view_ptr) {
-		view_ptr->set_view_up_dir(vec3(0, -1, 0));
+		view_ptr->set_view_up_dir(vec3(0, 1, 0));
 		view_ptr->set_focus(vec3(0, 0, 0));
 		view_ptr->set_eye_keep_view_angle(dvec3(0, 4, -4));
 		// if the view points to a vr_view_interactor
