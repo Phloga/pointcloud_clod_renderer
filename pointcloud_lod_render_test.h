@@ -70,6 +70,11 @@ protected:
 
 	void on_load_point_cloud_cb();
 	void on_clear_point_cloud_cb();
+	void on_rotate_x_cb();
+	void rotate_pc_x(const float angle);
+	void rotate_pc_y(const float angle);
+	void on_rotate_y_cb();
+	void on_rotate_z_cb();
 	void on_randomize_position_cb();
 	void on_reg_find_point_cloud_cb();
 	void on_point_cloud_style_cb();

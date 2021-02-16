@@ -1,7 +1,9 @@
 #include <cgv/base/base.h>
 #include "pointcloud_lod_render_test.h"
 #include <cgv_gl/gl/gl.h>
+#include <cg_vr/vr_events.h>
 #include <cgv/gui/file_dialog.h>
+
 #include <random>
 #include <chrono>
 #include <numeric>
@@ -63,7 +65,7 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 	if (view_ptr) {
 		view_ptr->set_view_up_dir(vec3(0, 1, 0));
 		view_ptr->set_focus(vec3(0, 0, 0));
-		view_ptr->set_eye_keep_view_angle(dvec3(0, 4, -4));
+		//view_ptr->set_eye_keep_view_angle(dvec3(0, 4, -4));
 		// if the view points to a vr_view_interactor
 		vr_view_interactor* vr_view_ptr = dynamic_cast<vr_view_interactor*>(view_ptr);
 		if (vr_view_ptr) {
@@ -171,7 +173,34 @@ void pointcloud_lod_render_test::clear(cgv::render::context & ctx)
 
 bool pointcloud_lod_render_test::handle(cgv::gui::event & e)
 {
-	return false;
+	if ((e.get_flags() & cgv::gui::EF_VR) == 0)
+		return false;
+	switch (e.get_kind()) {
+		case cgv::gui::EID_KEY:
+		{
+			static const float angle = std::asin(1.f)/3.f;
+			cgv::gui::vr_key_event& vrke = static_cast<cgv::gui::vr_key_event&>(e);
+			if (vrke.get_action() == cgv::gui::KA_RELEASE) {
+				return true;
+			}
+			switch (vrke.get_key()) {
+			case vr::VR_DPAD_LEFT:
+				rotate_pc_y(angle);
+				break;
+			case vr::VR_DPAD_RIGHT:
+				rotate_pc_y(-angle);
+				break;
+			case vr::VR_DPAD_UP:
+				rotate_pc_x(-angle);
+				break;
+			case vr::VR_DPAD_DOWN:
+				rotate_pc_x(angle);
+				break;
+			}
+			break;
+		}
+		return false;
+	}
 }
 
 void pointcloud_lod_render_test::stream_help(std::ostream & os)
@@ -183,10 +212,13 @@ void pointcloud_lod_render_test::create_gui()
 	add_decorator("Point cloud", "heading", "level=1");
 	connect_copy(add_button("load point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_load_point_cloud_cb));
 	connect_copy(add_button("clear point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_clear_point_cloud_cb));
-	connect_copy(add_button("randomize position")->click, rebind(this, &pointcloud_lod_render_test::on_randomize_position_cb));
-	add_member_control(this, "rotation intensity", rot_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
-	add_member_control(this,"translation intensity", trans_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
-	connect_copy(add_button("find point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_reg_find_point_cloud_cb));
+	//connect_copy(add_button("randomize position")->click, rebind(this, &pointcloud_lod_render_test::on_randomize_position_cb));
+	//add_member_control(this, "rotation intensity", rot_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
+	//add_member_control(this,"translation intensity", trans_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
+	//connect_copy(add_button("find point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_reg_find_point_cloud_cb));
+	connect_copy(add_button("rotate around x axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_x_cb));
+	connect_copy(add_button("rotate around y axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_y_cb));
+	connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
 	std::string mode_defs = "enums='random=2;potree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
 
@@ -221,6 +253,44 @@ void pointcloud_lod_render_test::on_clear_point_cloud_cb()
 	crs_srs_pc.clear();
 	renderer_out_of_date = true;
 	post_redraw();
+}
+
+void pointcloud_lod_render_test::on_rotate_x_cb()
+{
+	const float PI_H = std::asin(1);
+	quat rotation = quat(vec3(1.f, 0.f, 0.f), PI_H);
+	source_pc.transform(rotation.get_matrix());
+	renderer_out_of_date = true;
+}
+
+void pointcloud_lod_render_test::rotate_pc_x(const float angle)
+{
+	quat rotation = quat(vec3(1.f, 0.f, 0.f), angle);
+	source_pc.transform(rotation.get_matrix());
+	renderer_out_of_date = true;
+}
+
+void pointcloud_lod_render_test::rotate_pc_y(const float angle)
+{
+	quat rotation = quat(vec3(0.f, 1.f, 0.f), angle);
+	source_pc.transform(rotation.get_matrix());
+	renderer_out_of_date = true;
+}
+
+void pointcloud_lod_render_test::on_rotate_y_cb()
+{
+	const float PI_H = std::asin(1);
+	quat rotation = quat(vec3(0.f, 1.f, 0.f), PI_H);
+	source_pc.transform(rotation.get_matrix());
+	renderer_out_of_date = true;
+}
+
+void pointcloud_lod_render_test::on_rotate_z_cb()
+{
+	const float PI_H = std::asin(1);
+	quat rotation = quat(vec3(0.f, 0.f, 1.f), PI_H);
+	source_pc.transform(rotation.get_matrix());
+	renderer_out_of_date = true;
 }
 
 void pointcloud_lod_render_test::on_randomize_position_cb()
