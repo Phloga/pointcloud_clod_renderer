@@ -211,8 +211,9 @@ bool pointcloud_lod_render_test::handle(cgv::gui::event & e)
 			}
 			break;
 		}
-		return false;
+		return true;
 	}
+	return false;
 }
 
 void pointcloud_lod_render_test::stream_help(std::ostream & os)
