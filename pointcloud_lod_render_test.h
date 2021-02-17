@@ -79,6 +79,11 @@ protected:
 	void on_reg_find_point_cloud_cb();
 	void on_point_cloud_style_cb();
 	void on_lod_mode_change();
+
+	void construct_table(float tw, float td, float th, float tW);
+	void construct_room(float w, float d, float h, float W, bool walls, bool ceiling);
+	void construct_environment(float s, float ew, float ed, float w, float d, float h);
+	void build_scene(float w, float d, float h, float W, float tw, float td, float th, float tW);
 	
 private:
 	std::string ply_path;
@@ -95,6 +100,11 @@ private:
 	int lod_mode = (int)cgv::render::clod_point_renderer::LoDMode::RANDOM_POISSON;
 	cgv::render::clod_point_renderer cp_renderer;
 	cgv::render::clod_point_render_style cp_style;
+
+	std::vector<box3> boxes;
+	std::vector<rgb> box_colors;
+	cgv::render::box_render_style style;
+	constexpr static float table_height = 0.7f;
 };
 
 #include <cgv/config/lib_end.h>
