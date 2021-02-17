@@ -252,7 +252,7 @@ void pointcloud_lod_render_test::timer_event(double t, double dt)
 
 void pointcloud_lod_render_test::on_load_point_cloud_cb()
 {
-	std::string fn = cgv::gui::file_open_dialog("source point cloud", "Point cloud files (obj,ply):*.obj;*.ply");
+	std::string fn = cgv::gui::file_open_dialog("source point cloud", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	source_pc.read(fn);
 	renderer_out_of_date = true;
 	post_redraw();
