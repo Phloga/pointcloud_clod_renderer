@@ -145,7 +145,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
-			cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
+			cp_renderer.generate_lods((cgv::render::clod_point_renderer::LoDMode)lod_mode);
 			renderer_out_of_date = false;
 		}
 		if (cp_renderer.enable(ctx))
