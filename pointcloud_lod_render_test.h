@@ -93,6 +93,8 @@ private:
 	cgv::render::line_render_style lrs;
 	cgv::render::rounded_cone_render_style rcrs;
 
+	size_t max_points = -1;
+
 	float rot_intensity;
 	float trans_intensity;
 	bool view_find_point_cloud;
@@ -105,6 +107,7 @@ private:
 	
 	int lod_mode = (int)cgv::render::LoDMode::RANDOM_POISSON;
 	
+
 	cgv::render::clod_point_renderer cp_renderer;
 	cgv::render::clod_point_render_style cp_style;
 

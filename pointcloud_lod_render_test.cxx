@@ -42,12 +42,13 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
 {
 	return	rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) && 
+			rh.reflect_member("max_points", max_points) &&
 			rh.reflect_member("point_color_based_on_lod", color_based_on_lod);
 }
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
 {
-	if (member_ptr == &pointcloud_fit_table || member_ptr == &color_based_on_lod) {
+	if (member_ptr == &pointcloud_fit_table || member_ptr == &color_based_on_lod || member_ptr == &max_points) {
 		renderer_out_of_date = true;
 	}
 }
@@ -152,6 +153,29 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			}
 			//vector<cgv::render::render_types::rgba> colors(source_pc.get_nr_points(), rgba(color.x(), color.y(), color.z(), 0.f));
 
+			if (false && max_points < P.size()){
+				std::vector<size_t> exclude;
+				static std::random_device rdev;
+				while (max_points < P.size()-exclude.size()) {
+					std::uniform_int_distribution<int> dist(0, P.size());
+					int r = dist(rdev);
+					if (std::find(exclude.begin(), exclude.end(), r) != exclude.end()) {
+						exclude.push_back(dist(rdev));
+					}
+				}
+				exclude.push_back(max_points);
+				std::sort(exclude.begin(), exclude.end());
+				std::vector<vec3> TMP_P(max_points);
+				std::vector<rgb8> TMP_C(max_points);
+				//copy batchwise around excluded elements
+				int begin = 0;
+				for (int i = 0; i < exclude.size();++i) {
+					memcpy(TMP_P.data(), P.data() + begin, exclude[i] - begin);
+					memcpy(TMP_C.data(), C.data() + begin, exclude[i] - begin);
+				}
+				C = std::move(TMP_C);
+				P = std::move(TMP_P);
+			}
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
 			
@@ -264,6 +288,7 @@ void pointcloud_lod_render_test::create_gui()
 	connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
 	add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
 	add_member_control(this, "color based on LOD", color_based_on_lod, "toggle");
+	add_member_control(this, "point limit", max_points, "value_slider", "min=0;max=1000000000;log=true;ticks=true");
 	std::string mode_defs = "enums='random=2;potree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
 
