@@ -154,6 +154,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
+			
 			cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
 
 			if (color_based_on_lod) {
