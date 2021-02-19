@@ -97,6 +97,11 @@ private:
 	float trans_intensity;
 	bool view_find_point_cloud;
 	bool renderer_out_of_date = true;
+	bool pointcloud_fit_table = true;
+	bool color_based_on_lod = false;
+	static constexpr float min_level_hue = 230.0/360.0;
+	static constexpr float max_level_hue = 1.0;
+	
 	int lod_mode = (int)cgv::render::LoDMode::RANDOM_POISSON;
 	cgv::render::clod_point_renderer cp_renderer;
 	cgv::render::clod_point_render_style cp_style;

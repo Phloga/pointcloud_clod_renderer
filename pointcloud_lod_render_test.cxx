@@ -41,11 +41,15 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
 {
-	return	rh.reflect_member("ply_path", ply_path);
+	return	rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) && 
+			rh.reflect_member("point_color_based_on_lod", color_based_on_lod);
 }
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
 {
+	if (member_ptr == &pointcloud_fit_table || member_ptr == &color_based_on_lod) {
+		renderer_out_of_date = true;
+	}
 }
 
 void pointcloud_lod_render_test::on_register()
@@ -63,7 +67,7 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 	ctx.set_bg_clr_idx(3);
 	ctx.set_bg_color(0, 0, 0, 0.9);
 	cgv::render::view* view_ptr = find_view_as_node();
-
+	
 	if (view_ptr) {
 		view_ptr->set_view_up_dir(vec3(0, 1, 0));
 		view_ptr->set_focus(vec3(0, 0, 0));
@@ -126,7 +130,12 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			}
 			centroid /= source_pc.get_nr_points();
 			vec3 ext = (pmax - pmin);
-			scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(),ext.end())));
+			
+			if (pointcloud_fit_table) {
+				scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(), ext.end())));
+				//cp_style.scale = scale;
+			}
+				
 
 			vector<point_cloud::Pnt> P(source_pc.get_nr_points());
 			vector<point_cloud::Clr> C(source_pc.get_nr_points());
@@ -146,6 +155,26 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
 			cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
+
+			if (color_based_on_lod) {
+				int max_lod = 0;
+				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
+					max_lod = std::max((int)cp_renderer.point_lod(i),max_lod);
+				}
+
+				std::vector<rgb8> col_lut;
+				for (int lod = 0; lod <= max_lod; ++lod) {
+					cgv::media::color<float, cgv::media::HLS> col;
+					col.L() = 0.5f;
+					col.S() = 1.f;
+					col.H() = min_level_hue + (max_level_hue - min_level_hue) * ((float)lod / (float)max_lod);
+					col_lut.push_back(col);
+				}
+				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
+					C[i] = col_lut[cp_renderer.point_lod(i)];
+				}
+				cp_renderer.set_colors(ctx, C);
+			}
 			renderer_out_of_date = false;
 		}
 		if (cp_renderer.enable(ctx))
@@ -232,9 +261,10 @@ void pointcloud_lod_render_test::create_gui()
 	connect_copy(add_button("rotate around x axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_x_cb));
 	connect_copy(add_button("rotate around y axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_y_cb));
 	connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
+	add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
+	add_member_control(this, "color based on LOD", color_based_on_lod, "toggle");
 	std::string mode_defs = "enums='random=2;potree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
-
 
 	add_decorator("point cloud", "heading", "level=2");
 
