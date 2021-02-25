@@ -153,29 +153,6 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			}
 			//vector<cgv::render::render_types::rgba> colors(source_pc.get_nr_points(), rgba(color.x(), color.y(), color.z(), 0.f));
 
-			if (false && max_points < P.size()){
-				std::vector<size_t> exclude;
-				static std::random_device rdev;
-				while (max_points < P.size()-exclude.size()) {
-					std::uniform_int_distribution<int> dist(0, P.size());
-					int r = dist(rdev);
-					if (std::find(exclude.begin(), exclude.end(), r) != exclude.end()) {
-						exclude.push_back(dist(rdev));
-					}
-				}
-				exclude.push_back(max_points);
-				std::sort(exclude.begin(), exclude.end());
-				std::vector<vec3> TMP_P(max_points);
-				std::vector<rgb8> TMP_C(max_points);
-				//copy batchwise around excluded elements
-				int begin = 0;
-				for (int i = 0; i < exclude.size();++i) {
-					memcpy(TMP_P.data(), P.data() + begin, exclude[i] - begin);
-					memcpy(TMP_C.data(), C.data() + begin, exclude[i] - begin);
-				}
-				C = std::move(TMP_C);
-				P = std::move(TMP_P);
-			}
 			cp_renderer.set_positions(ctx, P);
 			cp_renderer.set_colors(ctx, C);
 			
@@ -203,7 +180,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			renderer_out_of_date = false;
 		}
 		if (cp_renderer.enable(ctx))
-			cp_renderer.draw(ctx, 0, source_pc.get_nr_points());
+			cp_renderer.draw(ctx, 0, std::min((size_t)source_pc.get_nr_points(),max_points));
 	}
 	//ctx.pop_modelview_matrix();
 
@@ -309,7 +286,7 @@ void pointcloud_lod_render_test::timer_event(double t, double dt)
 
 void pointcloud_lod_render_test::on_load_point_cloud_cb()
 {
-	std::string fn = cgv::gui::file_open_dialog("source point cloud", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
+	std::string fn = cgv::gui::file_open_dialog("source point cloud(*.obj;*.pobj;*.ply;*.bpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt)", "Point cloud files:*.obj;*.pobj;*.ply;*.bpc;*.xyz;*.pct;*.points;*.wrl;*.apc;*.pnt;*.txt;");
 	source_pc.read(fn);
 	renderer_out_of_date = true;
 	post_redraw();
