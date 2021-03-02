@@ -17,6 +17,7 @@ using namespace cgv::data;
 using namespace cgv::utils;
 using namespace cgv::render;
 
+
 pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	set_name("pointcloud_lod_render_test");
 
@@ -43,12 +44,13 @@ bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler &
 {
 	return	rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) && 
 			rh.reflect_member("max_points", max_points) &&
-			rh.reflect_member("point_color_based_on_lod", color_based_on_lod);
+			rh.reflect_member("point_color_based_on_lod", color_based_on_lod) && 
+			rh.reflect_member("model_size", model_size);
 }
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
 {
-	if (member_ptr == &pointcloud_fit_table || member_ptr == &color_based_on_lod || member_ptr == &max_points) {
+	if (member_ptr == &pointcloud_fit_table || member_ptr == &color_based_on_lod || member_ptr == &max_points || member_ptr == &model_size) {
 		renderer_out_of_date = true;
 	}
 }
@@ -125,40 +127,42 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 				centroid += source_pc.pnt(i);
 				pmin.x() = std::min(source_pc.pnt(i).x(), pmin.x()); pmin.y() = std::min(source_pc.pnt(i).y(), pmin.y());
-				pmin.z() = std::min(source_pc.pnt(i).z(),pmin.z());
+				pmin.z() = std::min(source_pc.pnt(i).z(), pmin.z());
 				pmax.x() = std::max(source_pc.pnt(i).x(), pmax.x()); pmax.y() = std::max(source_pc.pnt(i).y(), pmax.y());
 				pmax.z() = std::max(source_pc.pnt(i).z(), pmax.z());
 			}
 			centroid /= source_pc.get_nr_points();
 			vec3 ext = (pmax - pmin);
-			
+
 			if (pointcloud_fit_table) {
 				scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(), ext.end())));
 				//cp_style.scale = scale;
 			}
-				
+			scale *= model_size;
+			{
+				vector<point_cloud::Pnt> P(source_pc.get_nr_points());
+				vector<point_cloud::Clr> C(source_pc.get_nr_points());
 
-			vector<point_cloud::Pnt> P(source_pc.get_nr_points());
-			vector<point_cloud::Clr> C(source_pc.get_nr_points());
+				float diff_y = table_height - (pmin.y() - centroid.y()) * scale;
+				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
+					P[i] = (source_pc.pnt(i) - centroid) * scale + vec3(0.f, diff_y, 0.f);
+					if (source_pc.has_colors()) {
+						C[i] = source_pc.clr(i);
+					}
+					else {
+						C[i] = rgb8(color);
+					}
+				}
+				//vector<cgv::render::render_types::rgba> colors(source_pc.get_nr_points(), rgba(color.x(), color.y(), color.z(), 0.f));
 
-			float diff_y = table_height-(pmin.y()- centroid.y())*scale;
-			for (int i = 0; i < source_pc.get_nr_points(); ++i) {
-				P[i] = (source_pc.pnt(i) - centroid)*scale + vec3(0.f, diff_y, 0.f);
-				if (source_pc.has_colors()) {
-					C[i] = source_pc.clr(i);
-				}
-				else {
-					C[i] = rgb8(color);
-				}
+				cp_renderer.set_positions(ctx, P);
+				cp_renderer.set_colors(ctx, C);
 			}
-			//vector<cgv::render::render_types::rgba> colors(source_pc.get_nr_points(), rgba(color.x(), color.y(), color.z(), 0.f));
 
-			cp_renderer.set_positions(ctx, P);
-			cp_renderer.set_colors(ctx, C);
-			
 			cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
 
 			if (color_based_on_lod) {
+				vector<point_cloud::Clr> C(source_pc.get_nr_points());
 				int max_lod = 0;
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 					max_lod = std::max((int)cp_renderer.point_lod(i),max_lod);
@@ -256,6 +260,7 @@ void pointcloud_lod_render_test::create_gui()
 	add_decorator("Point cloud", "heading", "level=1");
 	connect_copy(add_button("load point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_load_point_cloud_cb));
 	connect_copy(add_button("clear point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_clear_point_cloud_cb));
+	connect_copy(add_button("build test point cloud")->click, rebind(this, &pointcloud_lod_render_test::build_test_object_32));
 	//connect_copy(add_button("randomize position")->click, rebind(this, &pointcloud_lod_render_test::on_randomize_position_cb));
 	//add_member_control(this, "rotation intensity", rot_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	//add_member_control(this,"translation intensity", trans_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
@@ -266,6 +271,7 @@ void pointcloud_lod_render_test::create_gui()
 	add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
 	add_member_control(this, "color based on LOD", color_based_on_lod, "toggle");
 	add_member_control(this, "point limit", max_points, "value_slider", "min=0;max=1000000000;log=true;ticks=true");
+	add_member_control(this, "model size", model_size, "value_slider", "min=0.1;max=5.0;log=false;ticks=true");
 	std::string mode_defs = "enums='random=2;potree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
 
@@ -438,6 +444,13 @@ void pointcloud_lod_render_test::build_scene(float w, float d, float h, float W,
 	construct_room(w, d, h, W, false, false);
 	construct_table(tw, td, th, tW);
 	construct_environment(0.30f, 3 * w, 3 * d, w, d, h);
+}
+
+void pointcloud_lod_render_test::build_test_object_32()
+{
+	int grid_size = 64;
+	source_pc = build_test_point_cloud(grid_size, grid_size, grid_size, grid_size, 1.0f);
+	renderer_out_of_date = true;
 }
 
 #include "lib_begin.h"

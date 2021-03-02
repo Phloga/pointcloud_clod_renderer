@@ -84,7 +84,31 @@ protected:
 	void construct_room(float w, float d, float h, float W, bool walls, bool ceiling);
 	void construct_environment(float s, float ew, float ed, float w, float d, float h);
 	void build_scene(float w, float d, float h, float W, float tw, float td, float th, float tW);
-	
+	void build_test_object_32();
+
+
+	point_cloud build_test_point_cloud(int x, int y, int z, int grid_size,float cube_size) {
+		double dgrid_size = grid_size;
+		point_cloud pc;
+		pc.create_colors();
+		for (int x = 0; x < grid_size; ++x) {
+			for (int y = 0; y < grid_size; ++y) {
+				for (int z = 0; z < grid_size; ++z) {
+					double dx = x, dy = y, dz = z;
+					int i = std::max(std::max(x, y), z)+1;
+					vec3 v(dx, dy, dz);
+					v *= cube_size / grid_size;
+					while (i > 0) {
+						pc.add_point(v);
+						pc.clr(pc.get_nr_points() - 1) = rgb8(i);
+						--i;
+					}
+				}
+			}
+		}
+		return std::move(pc);
+	}
+
 private:
 	std::string ply_path;
 	point_cloud source_pc, crs_srs_pc;
@@ -102,6 +126,7 @@ private:
 	
 	bool pointcloud_fit_table = true;
 	bool color_based_on_lod = false;
+	float model_size = 1.f;
 	static constexpr float min_level_hue = 230.0/360.0;
 	static constexpr float max_level_hue = 1.0;
 	
