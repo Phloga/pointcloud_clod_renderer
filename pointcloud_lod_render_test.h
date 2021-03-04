@@ -21,6 +21,7 @@
 #include <string>
 #include <mutex>
 #include <future>
+#include <unordered_set>
 
 // these are the vr specific headers
 #include <vr/vr_driver.h>
@@ -110,6 +111,8 @@ protected:
 	}
 
 private:
+	std::unordered_set<void*> reflected_member_ptrs;
+
 	std::string ply_path;
 	point_cloud source_pc, crs_srs_pc;
 	cgv::render::point_render_style source_prs;
@@ -125,13 +128,18 @@ private:
 	bool renderer_out_of_date = true;
 	
 	bool pointcloud_fit_table = true;
+	bool put_on_table = true;
 	bool color_based_on_lod = false;
-	float model_size = 1.f;
+	
 	static constexpr float min_level_hue = 230.0/360.0;
 	static constexpr float max_level_hue = 1.0;
 	
 	int lod_mode = (int)cgv::render::LoDMode::RANDOM_POISSON;
 	
+	bool gui_model_positioning = false;
+	vec3 model_position= vec3(0);
+	vec3 model_rotation = vec3(0);
+	float model_scale = 1.f;
 
 	cgv::render::clod_point_renderer cp_renderer;
 	cgv::render::clod_point_render_style cp_style;

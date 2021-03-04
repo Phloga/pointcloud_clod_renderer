@@ -3,6 +3,8 @@
 #include <cgv_gl/gl/gl.h>
 #include <cg_vr/vr_events.h>
 #include <cgv/gui/file_dialog.h>
+#include <cgv/math/ftransform.h>
+#include <cgv/math/constants.h>
 
 #include <random>
 #include <chrono>
@@ -38,19 +40,39 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	rcrs.radius = 0.001f;
 
 	build_scene(5, 7, 3, 0.2f, 1.6f, 0.8f, table_height, 0.03f);
+
+	//reflected members
+	reflected_member_ptrs.insert(&model_scale);
+	reflected_member_ptrs.insert(&model_position.x());
+	reflected_member_ptrs.insert(&model_position.y());
+	reflected_member_ptrs.insert(&model_position.z());
+	reflected_member_ptrs.insert(&model_rotation.x());
+	reflected_member_ptrs.insert(&model_rotation.y());
+	reflected_member_ptrs.insert(&model_rotation.z());
+	reflected_member_ptrs.insert(&put_on_table);
+	reflected_member_ptrs.insert(&color_based_on_lod);
+	reflected_member_ptrs.insert(&max_points);
+	reflected_member_ptrs.insert(&pointcloud_fit_table);
 }
 
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
 {
-	return	rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) && 
-			rh.reflect_member("max_points", max_points) &&
-			rh.reflect_member("point_color_based_on_lod", color_based_on_lod) && 
-			rh.reflect_member("model_size", model_size);
+	return	rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) &&
+		rh.reflect_member("max_points", max_points) &&
+		rh.reflect_member("point_color_based_on_lod", color_based_on_lod) &&
+		rh.reflect_member("model_scale", model_scale) &&
+		rh.reflect_member("model_position_x", model_position.x()) &&
+		rh.reflect_member("model_position_y", model_position.y()) &&
+		rh.reflect_member("model_position_z", model_position.z()) &&
+		rh.reflect_member("model_put_on_table", put_on_table) &&
+		rh.reflect_member("model_rotation_x", model_rotation.x()) &&
+		rh.reflect_member("model_rotation_y", model_rotation.y()) &&
+		rh.reflect_member("model_rotation_z", model_rotation.z());
 }
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
 {
-	if (member_ptr == &pointcloud_fit_table || member_ptr == &color_based_on_lod || member_ptr == &max_points || member_ptr == &model_size) {
+	if (reflected_member_ptrs.find(member_ptr) != reflected_member_ptrs.end()) {
 		renderer_out_of_date = true;
 	}
 }
@@ -138,14 +160,23 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 				scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(), ext.end())));
 				//cp_style.scale = scale;
 			}
-			scale *= model_size;
+			scale *= model_scale;
 			{
 				vector<point_cloud::Pnt> P(source_pc.get_nr_points());
 				vector<point_cloud::Clr> C(source_pc.get_nr_points());
+				
+				vec3 position(model_position);
+				if (put_on_table) {
+					position.y() = table_height - (pmin.y() - centroid.y()) * scale;
+				}
+				
+				mat3 rota = cgv::math::rotate3<float>(model_rotation);
 
-				float diff_y = table_height - (pmin.y() - centroid.y()) * scale;
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
-					P[i] = (source_pc.pnt(i) - centroid) * scale + vec3(0.f, diff_y, 0.f);
+					if (put_on_table)
+						P[i] = rota*(source_pc.pnt(i) - centroid) * scale + position;
+					else
+						P[i] = rota*(source_pc.pnt(i)) * scale + position;
 					if (source_pc.has_colors()) {
 						C[i] = source_pc.clr(i);
 					}
@@ -269,9 +300,9 @@ void pointcloud_lod_render_test::create_gui()
 	connect_copy(add_button("rotate around y axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_y_cb));
 	connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
 	add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
+	add_member_control(this, "place pointcloud on table", put_on_table, "toggle");
 	add_member_control(this, "color based on LOD", color_based_on_lod, "toggle");
 	add_member_control(this, "point limit", max_points, "value_slider", "min=0;max=1000000000;log=true;ticks=true");
-	add_member_control(this, "model size", model_size, "value_slider", "min=0.1;max=5.0;log=false;ticks=true");
 	std::string mode_defs = "enums='random=2;potree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
 
@@ -280,6 +311,19 @@ void pointcloud_lod_render_test::create_gui()
 	if (begin_tree_node("clod_render_style", cp_style, false)) {
 		align("\a");
 		add_gui("clod style", cp_style);
+		align("\b");
+		end_tree_node(cp_style);
+	}
+
+	if (begin_tree_node("Model positioning", gui_model_positioning, false)) {
+		align("\a");
+		add_member_control(this, "model scale", model_scale, "value_slider", "min=0.1;max=5.0;log=false;ticks=true");
+		add_member_control(this, "model position x", model_position.x(), "value_slider", "min=-10.0;max=10.0;log=false;ticks=true");
+		add_member_control(this, "model position y", model_position.y(), "value_slider", "min=-10.0;max=10.0;log=false;ticks=true");
+		add_member_control(this, "model position z", model_position.z(), "value_slider", "min=-10.0;max=10.0;log=false;ticks=true");
+		add_member_control(this, "model rotation x", model_rotation.x(), "value_slider", "min=0.0;max=360;log=false;ticks=true");
+		add_member_control(this, "model rotation y", model_rotation.y(), "value_slider", "min=0.0;max=360;log=false;ticks=true");
+		add_member_control(this, "model rotation z", model_rotation.z(), "value_slider", "min=0.0;max=360;log=false;ticks=true");
 		align("\b");
 		end_tree_node(cp_style);
 	}
