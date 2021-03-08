@@ -42,17 +42,17 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	build_scene(5, 7, 3, 0.2f, 1.6f, 0.8f, table_height, 0.03f);
 
 	//reflected members
-	reflected_member_ptrs.insert(&model_scale);
-	reflected_member_ptrs.insert(&model_position.x());
-	reflected_member_ptrs.insert(&model_position.y());
-	reflected_member_ptrs.insert(&model_position.z());
-	reflected_member_ptrs.insert(&model_rotation.x());
-	reflected_member_ptrs.insert(&model_rotation.y());
-	reflected_member_ptrs.insert(&model_rotation.z());
-	reflected_member_ptrs.insert(&put_on_table);
-	reflected_member_ptrs.insert(&color_based_on_lod);
-	reflected_member_ptrs.insert(&max_points);
-	reflected_member_ptrs.insert(&pointcloud_fit_table);
+	/*rebuild_ptrs.insert(&model_scale);
+	rebuild_ptrs.insert(&model_position.x());
+	rebuild_ptrs.insert(&model_position.y());
+	rebuild_ptrs.insert(&model_position.z());
+	rebuild_ptrs.insert(&model_rotation.x());
+	rebuild_ptrs.insert(&model_rotation.y());
+	rebuild_ptrs.insert(&model_rotation.z());*/
+	rebuild_ptrs.insert(&put_on_table);
+	rebuild_ptrs.insert(&color_based_on_lod);
+	rebuild_ptrs.insert(&max_points);
+	rebuild_ptrs.insert(&pointcloud_fit_table);
 }
 
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
@@ -72,7 +72,7 @@ bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler &
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
 {
-	if (reflected_member_ptrs.find(member_ptr) != reflected_member_ptrs.end()) {
+	if (rebuild_ptrs.find(member_ptr) != rebuild_ptrs.end()) {
 		renderer_out_of_date = true;
 	}
 }
@@ -130,7 +130,6 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 
 void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 {
-	//ctx.push_modelview_matrix();
 	{
 		cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
 		renderer.set_render_style(style);
@@ -158,25 +157,22 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 
 			if (pointcloud_fit_table) {
 				scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(), ext.end())));
-				//cp_style.scale = scale;
 			}
-			scale *= model_scale;
+			//scale *= model_scale;
 			{
 				vector<point_cloud::Pnt> P(source_pc.get_nr_points());
 				vector<point_cloud::Clr> C(source_pc.get_nr_points());
 				
-				vec3 position(model_position);
+				vec3 position(0);
 				if (put_on_table) {
 					position.y() = table_height - (pmin.y() - centroid.y()) * scale;
 				}
 				
-				mat3 rota = cgv::math::rotate3<float>(model_rotation);
-
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 					if (put_on_table)
-						P[i] = rota*(source_pc.pnt(i) - centroid) * scale + position;
+						P[i] = (source_pc.pnt(i) - centroid) * scale + position;
 					else
-						P[i] = rota*(source_pc.pnt(i)) * scale + position;
+						P[i] = (source_pc.pnt(i)) * scale + position;
 					if (source_pc.has_colors()) {
 						C[i] = source_pc.clr(i);
 					}
@@ -214,10 +210,14 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			}
 			renderer_out_of_date = false;
 		}
+		dmat4 transform = cgv::math::translate4(model_position)* cgv::math::rotate4<float>(model_rotation);
+		ctx.push_modelview_matrix();
+		ctx.set_modelview_matrix(ctx.get_modelview_matrix()* transform);
+		
 		if (cp_renderer.enable(ctx))
 			cp_renderer.draw(ctx, 0, std::min((size_t)source_pc.get_nr_points(),max_points));
+		ctx.pop_modelview_matrix();
 	}
-	//ctx.pop_modelview_matrix();
 
 	if (view_find_point_cloud) {
 		find_pointcloud(ctx);
