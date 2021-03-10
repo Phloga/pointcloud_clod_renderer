@@ -19,7 +19,6 @@ using namespace cgv::data;
 using namespace cgv::utils;
 using namespace cgv::render;
 
-
 pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	set_name("pointcloud_lod_render_test");
 
@@ -57,7 +56,8 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
 {
-	return	rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) &&
+	return	
+		rh.reflect_member("pointcloud_fit_table", pointcloud_fit_table) &&
 		rh.reflect_member("max_points", max_points) &&
 		rh.reflect_member("point_color_based_on_lod", color_based_on_lod) &&
 		rh.reflect_member("model_scale", model_scale) &&
@@ -67,13 +67,18 @@ bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler &
 		rh.reflect_member("model_put_on_table", put_on_table) &&
 		rh.reflect_member("model_rotation_x", model_rotation.x()) &&
 		rh.reflect_member("model_rotation_y", model_rotation.y()) &&
-		rh.reflect_member("model_rotation_z", model_rotation.z());
+		rh.reflect_member("model_rotation_z", model_rotation.z()) && 
+		rh.reflect_member("show_environment", show_environment);
 }
 
 void pointcloud_lod_render_test::on_set(void * member_ptr)
 {
 	if (rebuild_ptrs.find(member_ptr) != rebuild_ptrs.end()) {
 		renderer_out_of_date = true;
+	}
+	else if (member_ptr == &show_environment){
+		clear_scene();
+		build_scene(5, 7, 3, 0.2f, 1.6f, 0.8f, table_height, 0.03f);
 	}
 }
 
@@ -136,6 +141,9 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 		renderer.set_box_array(ctx, boxes);
 		renderer.set_color_array(ctx, box_colors);
 		renderer.render(ctx, 0, boxes.size());
+		if (show_environment) {
+
+		}
 	}
 	cp_renderer.set_render_style(cp_style);
 
@@ -296,12 +304,13 @@ void pointcloud_lod_render_test::create_gui()
 	//add_member_control(this, "rotation intensity", rot_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	//add_member_control(this,"translation intensity", trans_intensity, "value_slider", "min=0.01;max=1.0;log=false;ticks=true");
 	//connect_copy(add_button("find point cloud")->click, rebind(this, &pointcloud_lod_render_test::on_reg_find_point_cloud_cb));
-	connect_copy(add_button("rotate around x axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_x_cb));
-	connect_copy(add_button("rotate around y axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_y_cb));
-	connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
+	//connect_copy(add_button("rotate around x axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_x_cb));
+	//connect_copy(add_button("rotate around y axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_y_cb));
+	//connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
 	add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
 	add_member_control(this, "place pointcloud on table", put_on_table, "toggle");
-	add_member_control(this, "color based on LOD", color_based_on_lod, "toggle");
+	add_member_control(this, "show pointcloud LODs", color_based_on_lod, "toggle");
+	add_member_control(this, "show environment", show_environment, "toggle");
 	add_member_control(this, "point limit", max_points, "value_slider", "min=0;max=1000000000;log=true;ticks=true");
 	std::string mode_defs = "enums='random=2;potree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
@@ -437,7 +446,7 @@ void pointcloud_lod_render_test::construct_table(float tw, float td, float th, f
 }
 
 /// construct boxes that represent a room of dimensions w,d,h and wall width W
-void pointcloud_lod_render_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {
+void pointcloud_lod_render_test::construct_room(float w, float d, float h, float W, bool walls, bool ceiling) {	
 	// construct floor
 	boxes.push_back(box3(vec3(-0.5f * w, -W, -0.5f * d), vec3(0.5f * w, 0, 0.5f * d)));
 	box_colors.push_back(rgb(0.2f, 0.2f, 0.2f));
@@ -487,7 +496,8 @@ void pointcloud_lod_render_test::build_scene(float w, float d, float h, float W,
 {
 	construct_room(w, d, h, W, false, false);
 	construct_table(tw, td, th, tW);
-	construct_environment(0.30f, 3 * w, 3 * d, w, d, h);
+	if (show_environment)
+		construct_environment(0.30f, 3 * w, 3 * d, w, d, h);
 }
 
 void pointcloud_lod_render_test::build_test_object_32()
@@ -495,6 +505,12 @@ void pointcloud_lod_render_test::build_test_object_32()
 	int grid_size = 64;
 	source_pc = build_test_point_cloud(grid_size, grid_size, grid_size, grid_size, 1.0f);
 	renderer_out_of_date = true;
+}
+
+void pointcloud_lod_render_test::clear_scene()
+{
+	boxes.clear();
+	box_colors.clear();
 }
 
 #include "lib_begin.h"

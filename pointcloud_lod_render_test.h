@@ -85,6 +85,7 @@ protected:
 	void construct_room(float w, float d, float h, float W, bool walls, bool ceiling);
 	void construct_environment(float s, float ew, float ed, float w, float d, float h);
 	void build_scene(float w, float d, float h, float W, float tw, float td, float th, float tW);
+	void clear_scene();
 	void build_test_object_32();
 
 
@@ -111,7 +112,7 @@ protected:
 	}
 
 private:
-	std::unordered_set<void*> reflected_member_ptrs;
+	std::unordered_set<void*> rebuild_ptrs;
 
 	std::string ply_path;
 	point_cloud source_pc, crs_srs_pc;
@@ -130,7 +131,8 @@ private:
 	bool pointcloud_fit_table = true;
 	bool put_on_table = true;
 	bool color_based_on_lod = false;
-	
+	bool show_environment = true;
+
 	static constexpr float min_level_hue = 230.0/360.0;
 	static constexpr float max_level_hue = 1.0;
 	
