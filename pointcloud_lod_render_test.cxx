@@ -50,7 +50,7 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	rebuild_ptrs.insert(&model_rotation.z());*/
 	rebuild_ptrs.insert(&put_on_table);
 	rebuild_ptrs.insert(&color_based_on_lod);
-	rebuild_ptrs.insert(&max_points);
+	//rebuild_ptrs.insert(&max_points);
 	rebuild_ptrs.insert(&pointcloud_fit_table);
 }
 
@@ -218,7 +218,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			}
 			renderer_out_of_date = false;
 		}
-		dmat4 transform = cgv::math::translate4(model_position)* cgv::math::rotate4<float>(model_rotation);
+		dmat4 transform = cgv::math::translate4(model_position)* cgv::math::rotate4<float>(model_rotation) * cgv::math::scale4(model_scale, model_scale, model_scale);
 		ctx.push_modelview_matrix();
 		ctx.set_modelview_matrix(ctx.get_modelview_matrix()* transform);
 		
@@ -309,7 +309,7 @@ void pointcloud_lod_render_test::create_gui()
 	//connect_copy(add_button("rotate around z axis")->click, rebind(this, &pointcloud_lod_render_test::on_rotate_z_cb));
 	add_member_control(this, "auto-scale pointcloud", pointcloud_fit_table, "toggle");
 	add_member_control(this, "place pointcloud on table", put_on_table, "toggle");
-	add_member_control(this, "show pointcloud LODs", color_based_on_lod, "toggle");
+	add_member_control(this, "show LODs", color_based_on_lod, "toggle");
 	add_member_control(this, "show environment", show_environment, "toggle");
 	add_member_control(this, "point limit", max_points, "value_slider", "min=0;max=1000000000;log=true;ticks=true");
 	std::string mode_defs = "enums='random=2;potree=1'";
@@ -317,7 +317,7 @@ void pointcloud_lod_render_test::create_gui()
 
 	add_decorator("point cloud", "heading", "level=2");
 
-	if (begin_tree_node("clod_render_style", cp_style, false)) {
+	if (begin_tree_node("CLOD render style", cp_style, false)) {
 		align("\a");
 		add_gui("clod style", cp_style);
 		align("\b");
