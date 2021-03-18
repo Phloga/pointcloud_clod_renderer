@@ -312,7 +312,7 @@ void pointcloud_lod_render_test::create_gui()
 	add_member_control(this, "show LODs", color_based_on_lod, "toggle");
 	add_member_control(this, "show environment", show_environment, "toggle");
 	add_member_control(this, "point limit", max_points, "value_slider", "min=0;max=1000000000;log=true;ticks=true");
-	std::string mode_defs = "enums='random=2;potree=1'";
+	std::string mode_defs = "enums='random=2;octree=1'";
 	connect_copy(add_control("lod generator", (DummyEnum&)lod_mode, "dropdown", mode_defs)->value_change, rebind(this, &pointcloud_lod_render_test::on_lod_mode_change));
 
 	add_decorator("point cloud", "heading", "level=2");
