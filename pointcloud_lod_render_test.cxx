@@ -338,6 +338,7 @@ void pointcloud_lod_render_test::create_gui()
 	}
 }
 
+
 void pointcloud_lod_render_test::timer_event(double t, double dt)
 {
 	//post_redraw();
@@ -423,7 +424,7 @@ void pointcloud_lod_render_test::on_point_cloud_style_cb()
 
 void pointcloud_lod_render_test::on_lod_mode_change()
 {
-
+	renderer_out_of_date = true;
 }
 
 /// construct boxes that represent a table of dimensions tw,td,th and leg width tW
