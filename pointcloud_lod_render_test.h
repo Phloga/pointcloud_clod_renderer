@@ -17,6 +17,7 @@
 #include <cgv_gl/clod_point_renderer.h>
 
 #include <point_cloud.h>
+#include <octree.h>
 
 #include <string>
 #include <mutex>
@@ -30,6 +31,12 @@
 #include <vr_render_helpers.h>
 
 #include "lib_begin.h"
+
+enum class LoDMode {
+	OCTREE = 1,
+	RANDOM_POISSON = 2,
+	INVALID = -1
+};
 
 class pointcloud_lod_render_test :
 	public cgv::base::node,
@@ -136,7 +143,7 @@ private:
 	static constexpr float min_level_hue = 230.0/360.0;
 	static constexpr float max_level_hue = 1.0;
 	
-	int lod_mode = (int)cgv::render::LoDMode::RANDOM_POISSON;
+	int lod_mode = (int)LoDMode::OCTREE;
 	
 	bool gui_model_positioning = false;
 	vec3 model_position= vec3(0);
@@ -150,6 +157,9 @@ private:
 	std::vector<rgb> box_colors;
 	cgv::render::box_render_style style;
 	constexpr static float table_height = 0.7f;
+
+	octree_lod_generator lod_generator;
+	std::vector<octree_lod_generator::Vertex> points_with_lod;
 };
 
 #include <cgv/config/lib_end.h>

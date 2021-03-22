@@ -10,6 +10,8 @@
 #include <chrono>
 #include <numeric>
 
+#include <concurrency.h>
+
 using namespace std;
 using namespace cgv::base;
 using namespace cgv::signal;
@@ -18,6 +20,10 @@ using namespace cgv::gui;
 using namespace cgv::data;
 using namespace cgv::utils;
 using namespace cgv::render;
+
+namespace {
+	static WorkerPool pool(std::thread::hardware_concurrency() - 1);
+}
 
 pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	set_name("pointcloud_lod_render_test");
@@ -53,6 +59,68 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	//rebuild_ptrs.insert(&max_points);
 	rebuild_ptrs.insert(&pointcloud_fit_table);
 }
+
+
+namespace {
+	template<typename Point>
+	void generate_lods_poisson(std::vector<Point>& input_buffer_data)
+	{
+		static constexpr int mean = 8;
+		bool run_parralel = (input_buffer_data.size() > 10'000);
+
+		if (run_parralel) {
+
+			struct Task {
+				Point* start;
+				int num_points;
+			};
+			struct Tasks {
+				std::atomic_int next_task = 0;
+				std::vector<Task> task;
+			} tasks;
+
+			int64_t points_distributed = 0;
+			int64_t points_total = input_buffer_data.size();
+			constexpr int64_t batch_size = 500000;
+
+			while (points_distributed < points_total) {
+				int64_t batch = std::min(batch_size, points_total - points_distributed);
+				tasks.task.push_back({ &input_buffer_data[points_distributed],(int)batch });
+				points_distributed += batch;
+			}
+
+			pool.run([&input_buffer_data ,&tasks](int thread_id) {
+				std::poisson_distribution<int> dist(mean);
+				std::random_device rdev;
+
+				while (true) {
+					//fetch task
+					int tid = tasks.next_task.fetch_add(1, std::memory_order_relaxed);
+					if (tid < tasks.task.size()) {
+						Task& task = tasks.task[tid];
+
+						Point* end = task.start + task.num_points;
+						for (Point* p = task.start; p < end; p++) {
+							p->level = std::min(2 * mean, std::max(0, mean - abs(dist(rdev) - mean)));
+						}
+					}
+					else {
+						return;
+					}
+				}
+				});
+		}
+		else {
+			std::poisson_distribution<int> dist(8);
+			std::random_device rdev;
+
+			for (auto& v : input_buffer_data) {
+				v.level = std::min(2 * mean, std::max(0, mean - abs(dist(rdev) - mean)));
+			}
+		}
+	}
+}
+
 
 bool pointcloud_lod_render_test::self_reflect(cgv::reflect::reflection_handler & rh)
 {
@@ -168,8 +236,8 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			}
 			//scale *= model_scale;
 			{
-				vector<point_cloud::Pnt> P(source_pc.get_nr_points());
-				vector<point_cloud::Clr> C(source_pc.get_nr_points());
+
+				std::vector<octree_lod_generator::Vertex> V(source_pc.get_nr_points());
 				
 				vec3 position(0);
 				if (put_on_table) {
@@ -178,29 +246,35 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 				
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 					if (put_on_table)
-						P[i] = (source_pc.pnt(i) - centroid) * scale + position;
+						V[i].position = (source_pc.pnt(i) - centroid) * scale + position;
 					else
-						P[i] = (source_pc.pnt(i)) * scale + position;
+						V[i].position = (source_pc.pnt(i)) * scale + position;
 					if (source_pc.has_colors()) {
-						C[i] = source_pc.clr(i);
+						V[i].colors = source_pc.clr(i);
 					}
 					else {
-						C[i] = rgb8(color);
+						V[i].colors = rgb8(color);
 					}
 				}
-				//vector<cgv::render::render_types::rgba> colors(source_pc.get_nr_points(), rgba(color.x(), color.y(), color.z(), 0.f));
 
-				cp_renderer.set_positions(ctx, P);
-				cp_renderer.set_colors(ctx, C);
+				if ((LoDMode)lod_mode == LoDMode::OCTREE) {
+					points_with_lod = std::move(lod_generator.generate_lods(V));
+					//cp_renderer.set_points(&points_with_lod.data()->position, &points_with_lod.data()->colors, &points_with_lod.data()->level, points_with_lod.size(),sizeof(octree_lod_generator::Vertex));
+				}
+				else {
+					generate_lods_poisson(V);
+					points_with_lod = std::move(V);
+				}
 			}
 
-			cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
+			//cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
 
 			if (color_based_on_lod) {
-				vector<point_cloud::Clr> C(source_pc.get_nr_points());
+				std::vector<octree_lod_generator::Vertex> pnts = points_with_lod;
+				int num_points = pnts.size();
 				int max_lod = 0;
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
-					max_lod = std::max((int)cp_renderer.point_lod(i),max_lod);
+					max_lod = std::max((int)pnts[i].level,max_lod);
 				}
 
 				std::vector<rgb8> col_lut;
@@ -211,10 +285,13 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 					col.H() = min_level_hue + (max_level_hue - min_level_hue) * ((float)lod / (float)max_lod);
 					col_lut.push_back(col);
 				}
-				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
-					C[i] = col_lut[cp_renderer.point_lod(i)];
+				for (int i = 0; i < num_points; ++i) {
+					pnts[i].colors = col_lut[pnts[i].level];
 				}
-				cp_renderer.set_colors(ctx, C);
+				cp_renderer.set_points(pnts);
+			}
+			else {
+				cp_renderer.set_points(points_with_lod);
 			}
 			renderer_out_of_date = false;
 		}
