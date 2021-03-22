@@ -134,6 +134,7 @@ private:
 	float trans_intensity;
 	bool view_find_point_cloud;
 	bool renderer_out_of_date = true;
+	bool recolor_point_cloud = true;
 	
 	bool pointcloud_fit_table = true;
 	bool put_on_table = true;

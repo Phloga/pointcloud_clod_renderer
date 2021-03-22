@@ -55,7 +55,7 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 	rebuild_ptrs.insert(&model_rotation.y());
 	rebuild_ptrs.insert(&model_rotation.z());*/
 	rebuild_ptrs.insert(&put_on_table);
-	rebuild_ptrs.insert(&color_based_on_lod);
+	//rebuild_ptrs.insert(&color_based_on_lod);
 	//rebuild_ptrs.insert(&max_points);
 	rebuild_ptrs.insert(&pointcloud_fit_table);
 }
@@ -148,6 +148,9 @@ void pointcloud_lod_render_test::on_set(void * member_ptr)
 		clear_scene();
 		build_scene(5, 7, 3, 0.2f, 1.6f, 0.8f, table_height, 0.03f);
 	}
+	else if (member_ptr == &color_based_on_lod) {
+		recolor_point_cloud = true;
+	}
 }
 
 void pointcloud_lod_render_test::on_register()
@@ -235,15 +238,15 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 				scale = (1.0 / static_cast<double>(*std::max_element(ext.begin(), ext.end())));
 			}
 			//scale *= model_scale;
-			{
 
+			{
 				std::vector<octree_lod_generator::Vertex> V(source_pc.get_nr_points());
-				
+
 				vec3 position(0);
 				if (put_on_table) {
 					position.y() = table_height - (pmin.y() - centroid.y()) * scale;
 				}
-				
+
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 					if (put_on_table)
 						V[i].position = (source_pc.pnt(i) - centroid) * scale + position;
@@ -267,6 +270,9 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 				}
 			}
 
+		}
+		
+		if (renderer_out_of_date || recolor_point_cloud){
 			//cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
 
 			if (color_based_on_lod) {
@@ -289,12 +295,16 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 					pnts[i].colors = col_lut[pnts[i].level];
 				}
 				cp_renderer.set_points(pnts);
+				//cp_renderer.set_points(&pnts.data()->position, &pnts.data()->colors, &pnts.data()->level, pnts.size(), sizeof(octree_lod_generator::Vertex));
 			}
 			else {
 				cp_renderer.set_points(points_with_lod);
 			}
 			renderer_out_of_date = false;
+			recolor_point_cloud = false;
 		}
+
+		// apply transform and draw
 		dmat4 transform = cgv::math::translate4(model_position)* cgv::math::rotate4<float>(model_rotation) * cgv::math::scale4(model_scale, model_scale, model_scale);
 		ctx.push_modelview_matrix();
 		ctx.set_modelview_matrix(ctx.get_modelview_matrix()* transform);
