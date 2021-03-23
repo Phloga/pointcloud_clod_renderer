@@ -240,7 +240,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			//scale *= model_scale;
 
 			{
-				std::vector<octree_lod_generator::Vertex> V(source_pc.get_nr_points());
+				std::vector<LODPoint> V(source_pc.get_nr_points());
 
 				vec3 position(0);
 				if (put_on_table) {
@@ -253,10 +253,10 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 					else
 						V[i].position = (source_pc.pnt(i)) * scale + position;
 					if (source_pc.has_colors()) {
-						V[i].colors = source_pc.clr(i);
+						V[i].color = source_pc.clr(i);
 					}
 					else {
-						V[i].colors = rgb8(color);
+						V[i].color = rgb8(color);
 					}
 				}
 
@@ -276,7 +276,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			//cp_renderer.generate_lods((cgv::render::LoDMode)lod_mode);
 
 			if (color_based_on_lod) {
-				std::vector<octree_lod_generator::Vertex> pnts = points_with_lod;
+				std::vector<LODPoint> pnts = points_with_lod;
 				int num_points = pnts.size();
 				int max_lod = 0;
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
@@ -292,13 +292,13 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 					col_lut.push_back(col);
 				}
 				for (int i = 0; i < num_points; ++i) {
-					pnts[i].colors = col_lut[pnts[i].level];
+					pnts[i].color = col_lut[pnts[i].level];
 				}
-				cp_renderer.set_points(pnts);
+				cp_renderer.set_points(ctx,pnts);
 				//cp_renderer.set_points(&pnts.data()->position, &pnts.data()->colors, &pnts.data()->level, pnts.size(), sizeof(octree_lod_generator::Vertex));
 			}
 			else {
-				cp_renderer.set_points(points_with_lod);
+				cp_renderer.set_points(ctx,points_with_lod);
 			}
 			renderer_out_of_date = false;
 			recolor_point_cloud = false;

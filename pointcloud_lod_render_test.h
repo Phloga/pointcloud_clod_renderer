@@ -160,7 +160,7 @@ private:
 	constexpr static float table_height = 0.7f;
 
 	octree_lod_generator lod_generator;
-	std::vector<octree_lod_generator::Vertex> points_with_lod;
+	std::vector<LODPoint> points_with_lod;
 };
 
 #include <cgv/config/lib_end.h>
