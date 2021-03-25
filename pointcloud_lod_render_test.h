@@ -151,7 +151,6 @@ private:
 	vec3 model_rotation = vec3(0);
 	float model_scale = 1.f;
 
-	cgv::render::clod_point_renderer cp_renderer;
 	cgv::render::clod_point_render_style cp_style;
 
 	std::vector<box3> boxes;

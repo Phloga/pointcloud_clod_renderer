@@ -198,7 +198,8 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 	cgv::render::ref_surfel_renderer(ctx, 1);
 	cgv::render::ref_rounded_cone_renderer(ctx, 1);
 	cgv::render::ref_box_renderer(ctx,1);
-	cp_renderer.init(ctx);
+	cgv::render::ref_clod_point_renderer(ctx, 1);
+	//cp_renderer.init(ctx);
 	ctx.set_bg_color(0.7, 0.7, 0.8, 1.0);
 	return true;
 }
@@ -206,6 +207,7 @@ bool pointcloud_lod_render_test::init(cgv::render::context & ctx)
 
 void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 {
+	cgv::render::clod_point_renderer& cp_renderer = ref_clod_point_renderer(ctx);
 	{
 		cgv::render::box_renderer& renderer = cgv::render::ref_box_renderer(ctx);
 		renderer.set_render_style(style);
@@ -313,7 +315,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 			cp_renderer.draw(ctx, 0, std::min((size_t)source_pc.get_nr_points(),max_points));
 		ctx.pop_modelview_matrix();
 	}
-
+	
 	if (view_find_point_cloud) {
 		find_pointcloud(ctx);
 		view_find_point_cloud = false;
@@ -342,6 +344,7 @@ void pointcloud_lod_render_test::clear(cgv::render::context & ctx)
 	cgv::render::ref_surfel_renderer(ctx, -1);
 	cgv::render::ref_rounded_cone_renderer(ctx, -1);
 	cgv::render::ref_box_renderer(ctx, -1);
+	cgv::render::ref_clod_point_renderer(ctx, -1);
 }
 
 bool pointcloud_lod_render_test::handle(cgv::gui::event & e)
