@@ -20,6 +20,7 @@ using namespace cgv::gui;
 using namespace cgv::data;
 using namespace cgv::utils;
 using namespace cgv::render;
+using namespace cgv::pointcloud;
 
 namespace {
 	static WorkerPool pool(std::thread::hardware_concurrency() - 1);

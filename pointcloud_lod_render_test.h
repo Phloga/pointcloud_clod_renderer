@@ -158,8 +158,8 @@ private:
 	cgv::render::box_render_style style;
 	constexpr static float table_height = 0.7f;
 
-	octree_lod_generator lod_generator;
-	std::vector<LODPoint> points_with_lod;
+	cgv::pointcloud::octree_lod_generator lod_generator;
+	std::vector<cgv::pointcloud::LODPoint> points_with_lod;
 };
 
 #include <cgv/config/lib_end.h>
