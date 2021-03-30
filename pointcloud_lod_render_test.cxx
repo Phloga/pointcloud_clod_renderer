@@ -42,7 +42,6 @@ pointcloud_lod_render_test::pointcloud_lod_render_test() {
 
 	rot_intensity = 0.2f;
 	trans_intensity = 0.1;
-	lrs.line_width = 1.0f;
 	rcrs.radius = 0.001f;
 
 	build_scene(5, 7, 3, 0.2f, 1.6f, 0.8f, table_height, 0.03f);
