@@ -102,7 +102,7 @@ namespace {
 
 						Point* end = task.start + task.num_points;
 						for (Point* p = task.start; p < end; p++) {
-							p->level = std::min(2 * mean, std::max(0, mean - abs(dist(rdev) - mean)));
+							p->level() = std::min(2 * mean, std::max(0, mean - abs(dist(rdev) - mean)));
 						}
 					}
 					else {
@@ -116,7 +116,7 @@ namespace {
 			std::random_device rdev;
 
 			for (auto& v : input_buffer_data) {
-				v.level = std::min(2 * mean, std::max(0, mean - abs(dist(rdev) - mean)));
+				v.level() = std::min(2 * mean, std::max(0, mean - abs(dist(rdev) - mean)));
 			}
 		}
 	}
@@ -252,14 +252,14 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
 					if (put_on_table)
-						V[i].position = (source_pc.pnt(i) - centroid) * scale + position;
+						V[i].position() = (source_pc.pnt(i) - centroid) * scale + position;
 					else
-						V[i].position = (source_pc.pnt(i)) * scale + position;
+						V[i].position() = (source_pc.pnt(i)) * scale + position;
 					if (source_pc.has_colors()) {
-						V[i].color = source_pc.clr(i);
+						V[i].color() = source_pc.clr(i);
 					}
 					else {
-						V[i].color = rgb8(color);
+						V[i].color() = rgb8(color);
 					}
 				}
 
@@ -283,7 +283,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 				int num_points = pnts.size();
 				int max_lod = 0;
 				for (int i = 0; i < source_pc.get_nr_points(); ++i) {
-					max_lod = std::max((int)pnts[i].level,max_lod);
+					max_lod = std::max((int)pnts[i].level(),max_lod);
 				}
 
 				std::vector<rgb8> col_lut;
@@ -295,13 +295,13 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 					col_lut.push_back(col);
 				}
 				for (int i = 0; i < num_points; ++i) {
-					pnts[i].color = col_lut[pnts[i].level];
+					pnts[i].color() = col_lut[pnts[i].level()];
 				}
-				cp_renderer.set_points(ctx,pnts);
-				//cp_renderer.set_points(&pnts.data()->position, &pnts.data()->colors, &pnts.data()->level, pnts.size(), sizeof(octree_lod_generator::Vertex));
+				//cp_renderer.set_points(ctx,pnts);
+				cp_renderer.set_points(ctx,&pnts.data()->position(), &pnts.data()->color(), &pnts.data()->level(), pnts.size(), sizeof(LODPoint));
 			}
 			else {
-				cp_renderer.set_points(ctx,points_with_lod);
+				cp_renderer.set_points(ctx, &points_with_lod.data()->position(), &points_with_lod.data()->color(), &points_with_lod.data()->level(), points_with_lod.size(), sizeof(LODPoint));
 			}
 			renderer_out_of_date = false;
 			recolor_point_cloud = false;
