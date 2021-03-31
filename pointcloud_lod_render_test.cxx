@@ -23,7 +23,7 @@ using namespace cgv::render;
 using namespace cgv::pointcloud;
 
 namespace {
-	static WorkerPool pool(std::thread::hardware_concurrency() - 1);
+	static cgv::pointcloud::utility::WorkerPool pool(std::thread::hardware_concurrency() - 1);
 }
 
 pointcloud_lod_render_test::pointcloud_lod_render_test() {
