@@ -11,7 +11,6 @@
 #include <cgv/render/texture.h>
 #include <cgv/render/render_types.h>
 #include <cgv_gl/point_renderer.h>
-#include <cgv_gl/line_renderer.h>
 #include <cgv_gl/rounded_cone_renderer.h>
 #include <cgv_gl/surfel_renderer.h>
 #include <cgv_gl/clod_point_renderer.h>
@@ -45,6 +44,8 @@ class pointcloud_lod_render_test :
 	public cgv::gui::provider
 {
 public:
+	using LODPoint = cgv::pointcloud::SimpleLODPoint;
+
 	pointcloud_lod_render_test();
 
 	/// overload to return the type name of this object. By default the type interface is queried over get_type.
@@ -125,7 +126,6 @@ private:
 	point_cloud source_pc, crs_srs_pc;
 	cgv::render::point_render_style source_prs;
 	cgv::render::surfel_render_style source_srs;
-	cgv::render::line_render_style lrs;
 	cgv::render::rounded_cone_render_style rcrs;
 
 	size_t max_points = -1;
@@ -158,8 +158,8 @@ private:
 	cgv::render::box_render_style style;
 	constexpr static float table_height = 0.7f;
 
-	cgv::pointcloud::octree_lod_generator lod_generator;
-	std::vector<cgv::pointcloud::LODPoint> points_with_lod;
+	cgv::pointcloud::octree_lod_generator<LODPoint> lod_generator;
+	std::vector<LODPoint> points_with_lod;
 };
 
 #include <cgv/config/lib_end.h>
