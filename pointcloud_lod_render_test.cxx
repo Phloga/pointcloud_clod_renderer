@@ -151,6 +151,7 @@ void pointcloud_lod_render_test::on_set(void * member_ptr)
 	else if (member_ptr == &color_based_on_lod) {
 		recolor_point_cloud = true;
 	}
+	recreate_gui();
 }
 
 void pointcloud_lod_render_test::on_register()
@@ -296,7 +297,7 @@ void pointcloud_lod_render_test::draw(cgv::render::context & ctx)
 				for (int i = 0; i < num_points; ++i) {
 					pnts[i].color() = col_lut[pnts[i].level()];
 				}
-				//cp_renderer.set_points(ctx,pnts);
+				//cp_renderer.set_points(ctx, pnts.data(), pnts.size());
 				cp_renderer.set_points(ctx,&pnts.data()->position(), &pnts.data()->color(), &pnts.data()->level(), pnts.size(), sizeof(LODPoint));
 			}
 			else {
